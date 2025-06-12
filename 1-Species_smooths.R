@@ -82,7 +82,7 @@ if(re_download){
                               x = groupNameFr,
                               fixed = TRUE),
            include = toupper(include)) %>%
-    filter(!(speciesID == 12231 & populationID == 8414))
+    filter(!(speciesID == 12231 & populationID == 8414)) # adjusting Western Flycatcher for recent change in taxonomy
 
 
   saveRDS(species_groups,"data/species_groups.rds")
@@ -100,23 +100,34 @@ if(re_download){
 
 # load previously downloaded datafiles ------------------------------------
 
+#species population table including three generation length,
+# canadian occurrence, population goals, etc.
 sp_tbl <- readRDS("data/SocbSpecies.rds") %>%
   rename_with(.,.fn = specid_rename)
-group_tbl <- readRDS("data/Groups.rds") %>%
-  rename_with(.,.fn = specid_rename)
-trend_tbl <- readRDS("data/Trends.rds") %>%
-  rename_with(.,.fn = specid_rename)
+
+# surveys assocaited with species goals
 rank_tbl <- readRDS("data/SocbTrendRank.rds") %>%
   rename_with(.,.fn = specid_rename)
-indices_tbl <- readRDS("data/TrendsIndices.rds") %>%
-  rename_with(.,.fn = specid_rename)
+
+# annual indices of abundance assocaited with species goal
 goal_indices_tbl <- readRDS("data/TrendsIndicesGoals.rds") %>%
   rename_with(.,.fn = specid_rename)
-species_groups <- readRDS("data/species_groups.rds")
 
-species_names <- readRDS("data/species_names.rds")
+# species inclusion table for composite groups
+species_groups <- readRDS("data/species_groups.rds")%>%
+  mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher
+                            12231,speciesID))
+# additional species names table
+species_names <- readRDS("data/species_names.rds") %>%
+  mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher
+                            12231,speciesID))
 
+# Prepare data for smooth models ------------------------------------------
 
+base_year <- 1970
+re_smooth <- FALSE
+
+# id the best survey datasets for each species ----------------------------
 rank_tbl <- rank_tbl %>%
   select(trendID,goalTrend,popID,rank,speciesID,subspeciesID,trendID,
          resultsCode,popType,areaCode)%>%
@@ -125,7 +136,8 @@ rank_tbl <- rank_tbl %>%
   distinct()
 
 tst<- rank_tbl %>%
-  inner_join(species_names)
+  anti_join(species_names)
+if(nrow(tst) > 0){stop(paste(nrow(tst),"species are missing from at least one dataset"))}
 
 sp_simple <- sp_tbl %>%
   select(speciesCode,speciesID,
@@ -148,84 +160,42 @@ goal_indices_tbl <- goal_indices_tbl %>%
   select(resultsCode,speciesID,
          year, index, indexUpperCI,indexLowerCI,
          areaCode)%>%
-  distinct()
-
-
-
-
-
-
-
-
-# trend_tbl <- trend_tbl %>%
-#   select(resultsCode, speciesID,trendID, socb, rank)%>%
-#   distinct()
-
-
-goal_indices_tbl1 <- goal_indices_tbl %>%
+  distinct() %>%
   inner_join(.,traj_sel) %>%
   filter(year >= base_year) %>%
   distinct()
 
 
-# gwte <- goal_indices_tbl %>%
-#   filter(speciesCode == "gnwtea",
-#          resultsCode == "WBPHS")
-#
-#
-#
-# tst <- ggplot(data = gwte,
-#               aes(x = year,y = index))+
-#   geom_pointrange(aes(ymin = indexLowerCI, ymax = indexUpperCI))+
-#   scale_y_continuous(trans = "log10")+
-#   geom_smooth(method = "lm")
-# tst
+re_summarise_indices <- TRUE
 
-
-sp_gt_1_pop <- goal_indices_tbl1 %>%
-  group_by(speciesID,speciesCode) %>%
-  summarise(n_years = n()) %>%
-  filter(n_years > 53)
-
-## select indices for species with > 1 region
-tst <- goal_indices_tbl %>%
-  filter(speciesID %in% sp_gt_1_pop$speciesID)
-
-
-# combine indices for species with one region with national scale indices for species with >1 region
+if(re_summarise_indices){
 all_inds <- goal_indices_tbl %>%
   inner_join(.,traj_sel) %>%
   filter(year >= base_year) %>%
   distinct()
 
-
-# final check that each species has only 1 time-series
-n_yrs <- all_inds %>%
-  group_by(speciesID,areaCode) %>%
-  summarise(n_years = n())
-if(max(n_yrs$n_years) > 53){
-  stop("Some species have too many years of data")
-}
-
+# identify a few rows where the index of lower CI of the indices are 0 and
+# therefore will throw NA values with a log transformation (Ross's Goose Lincoln estimates)
 miss_inds <- all_inds %>%
   filter(index <= 0 |
            indexLowerCI <= 0 |
            is.infinite(indexUpperCI))
+
+# fix the lower CI for these 0 values so they can be log-transformed
 if(nrow(miss_inds) > 0){
   miss_sp <- unique(miss_inds$speciesCode)
   all_inds <- all_inds %>%
     rowwise() %>%
     mutate(indexLowerCI = ifelse(indexLowerCI == 0,max(0.1,index-indexUpperCI),indexLowerCI)) #fixes lower bound for a handful of
-  warning(paste((paste(miss_sp,collapse = ", ")),"had missing index or CI information, that should be repaired in the next step"))
+  warning(paste((paste(miss_sp,collapse = ", ")),"had missing index or CI information. Zeros have been replaced with arbitrarily small values"))
 }
 
+
+
 all_inds <- all_inds %>%
-  filter(index > 0, indexLowerCI > 0)
+  filter(index > 0)
 
 
-#all_inds <- readRDS("data/Canadian_BBS_indices.rds")
-
-#all_inds <- readRDS("data/all_socb_goal_indices.rds")
 
 all_inds <- all_inds %>%
   mutate(ln_index = log(index),
@@ -239,24 +209,16 @@ all_inds <- all_inds %>%
 
 saveRDS(all_inds,"data/all_socb_goal_indices.rds")
 
+}else{
 
-# export original indices for WWF -----------------------------------------
+all_inds <- readRDS("data/all_socb_goal_indices.rds")
 
-all_inds_wwf <- all_inds %>%
-  select(english_name,french_name,scientific_name,speciesCode,
-         year, index, indexUpperCI, indexLowerCI,
-         resultsCode,population,areaCode,trendID,speciesID)
+}
 
-write_excel_csv(all_inds_wwf,
-                "all_2024_stateofCanadasBirds_indices.csv")
 
 all_sp <- unique(all_inds$speciesID)
+
 all_smoothed_indices <- NULL
-
-species_confidence <- all_inds %>%
-  select(speciesID,confidence) %>%
-  distinct()
-
 
 
 
@@ -380,22 +342,13 @@ if(re_smooth){
 
     all_smoothed_indices <- bind_rows(all_smoothed_indices,smooth_inds)
 
-    # tst <- ggplot(data = smooth_inds,
-    #               aes(x = year, y = smooth_ind))+
-    #   geom_pointrange(data = inds,
-    #                   aes(x = year, y = ln_index,
-    #                       ymin = ln_index-ln_index_sd,
-    #                       ymax = ln_index+ln_index_sd))+
-    #   geom_ribbon(aes(ymin = smooth_ind_lci,
-    #                   ymax = smooth_ind_uci),
-    #               colour = NA, alpha = 0.3)+
-    #   geom_line()
-    # tst
+
 
     print(paste(species,"complete",round(which(all_sp == species)/length(all_sp),2)))
 
   }
 
-  #saveRDS(all_smoothed_indices,"socb_smoothed_indices.rds")
+  saveRDS(all_smoothed_indices,"data/socb_smoothed_indices.rds")
 
 }
+
