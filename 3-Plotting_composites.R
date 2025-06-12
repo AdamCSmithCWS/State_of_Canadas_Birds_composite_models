@@ -6,49 +6,34 @@ library(readxl)
 library(patchwork)
 library(ggrepel)
 
-source("functions/specid_rename.R")
-
 
 base_year <- 1970
 
 
-
-sp_tbl <- readRDS("data/SocbSpecies.rds") %>%
-  rename_with(.,.fn = specid_rename)
-group_tbl <- readRDS("data/Groups.rds") %>%
-  rename_with(.,.fn = specid_rename)
-trend_tbl <- readRDS("data/Trends.rds") %>%
-  rename_with(.,.fn = specid_rename)
-rank_tbl <- readRDS("data/SocbTrendRank.rds") %>%
-  rename_with(.,.fn = specid_rename)
-indices_tbl <- readRDS("data/TrendsIndices.rds") %>%
-  rename_with(.,.fn = specid_rename)
-goal_indices_tbl <- readRDS("data/TrendsIndicesGoals.rds") %>%
-  rename_with(.,.fn = specid_rename)
-species_names <- readRDS("data/species_names.rds") %>%
-  rename_with(.,.fn = specid_rename)
+species_names <- readRDS("data/species_names.rds")
 
 
 all_inds <- readRDS("data/all_socb_goal_indices.rds")
 
 
-all_smoothed_indices <- readRDS("socb_smoothed_indices.rds") %>%
-  rename_with(.,
-              .fn = specid_rename) %>%
+all_smoothed_indices <- readRDS("data/socb_smoothed_indices.rds") %>%
   left_join(.,species_names,
             by = "speciesID")
 
 all_composites <- readRDS("output/annual_status_combine.rds")
 
+published_groups <- readRDS("data/published_groups.rds")
 species_groups <- readRDS("data/species_groups.rds")
 
+
 groupIDs <- species_groups %>%
+  filter(groupName %in% published_groups) %>%
   select(groupName,groupID) %>%
   distinct()
 
 
 all_composites_out <- all_composites %>%
-  left_join(.,groupIDs) %>%
+  inner_join(.,groupIDs) %>%
   rename(log_scale_indicator = mean,
          log_scale_indicator_sd = sd,
          log_scale_indicator_lci = q2_5,
@@ -65,35 +50,19 @@ write_csv(all_composites_out,"composite_indicators_all.csv")
 
 
 
-species_groups <- readRDS("data/species_groups.rds")
-
-main_groups <- species_groups %>%
-  filter(subgroupID == 0,
-         groupName != "Galliformes: All") %>%
-  select(groupName) %>%
-  distinct() %>%
-  #mutate(groupName = str_trim(gsub(": All","",x = groupName))) %>%
-  unlist()
-
 # Group-level models ------------------------------------------------------
 
+high_level_groups <- groupIDs %>%
+  filter(grepl(" All",groupName))
 
-out_composites <- all_composites %>%
-  select(groupName,year,mean,q2_5,q97_5,percent_diff,percent_diff_lci,percent_diff_uci) %>%
-  mutate(across(mean:percent_diff_uci,
-                .fns = ~signif(.x,digits = 4)))
-# write_csv(out_composites,
-#           "output/saved_draft_composite_trajectories.csv")
-#
 
-high_level_groups <- main_groups[c(1,2,3,4,5,6,7,8,9,13)]
 main_composites <- all_composites %>%
-  filter(groupName %in% high_level_groups)
+  filter(groupName %in% high_level_groups$groupName)
 
 
 final_years <- main_composites %>%
   group_by(groupName) %>%
-  summarise(last_year = max(year))
+  summarise(last_year = max(year,na.rm = TRUE))
 
 names_plot <- main_composites %>%
   inner_join(.,final_years,
@@ -105,24 +74,26 @@ names_plot <- main_composites %>%
 
 
 
-brks_pch <- c(-95,-90,-75,-50,-40,-25,0,25,50,100,200,300,500) # values of  percent change I’d like to show on the y-axis
+brks_pch <- c(-98,-95,-90,-75,-50,-33,0,50,100,300,500,1000,2000,5000)
 brks_log <- log((brks_pch/100)+1) # above values transformed to original log-scale – used to set the breaks in the log-scale graph below.
 brks_labs <- paste0(brks_pch,"%") # text labels to add to the y-axis
 
 
 
 overview <- ggplot(data = main_composites,
-                   aes(x = year,y = mean, group = groupName,
-                       colour = groupName))+
+                   aes(x = year,y = mean, group = groupName))+
   geom_hline(yintercept = 0)+
-  geom_line()+
+  geom_ribbon(aes(ymin = q2_5,ymax = q97_5,
+                  fill = groupName),
+              alpha = 0.2)+
+  geom_line(aes(colour = groupName))+
   geom_text_repel(data = names_plot,
             aes(label = lbl),nudge_x = 10,
             size = 4,
             segment.alpha = 0.3)+
   coord_cartesian(xlim = c(1970,2040),
                   ylim = c(brks_log[3],brks_log[9]))+
-  scale_color_viridis_d()+
+  scale_color_viridis_d(aesthetics = c("fill","colour"))+
   theme_bw()+
   ylab("")+
   xlab("")+

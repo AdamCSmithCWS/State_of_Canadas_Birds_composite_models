@@ -14,6 +14,16 @@ q2_5 <- function(x)c(q2_5 = quantile(x,probs = c(0.025),
 q97_5 <- function(x)c(q97_5 = quantile(x,probs = c(0.975),
                                        names = FALSE))
 
+q5 <- function(x)c(q2_5 = quantile(x,probs = c(0.05),
+                                     names = FALSE))
+q95 <- function(x)c(q97_5 = quantile(x,probs = c(0.95),
+                                       names = FALSE))
+
+q10 <- function(x)c(q2_5 = quantile(x,probs = c(0.1),
+                                     names = FALSE))
+q90 <- function(x)c(q97_5 = quantile(x,probs = c(0.9),
+                                       names = FALSE))
+
 
 
 
@@ -274,6 +284,10 @@ sum2 <- fit2$summary(variables = NULL,
                      "ess_bulk",
                      "rhat",
                      q2_5 = q2_5,
+                     q5 = q5,
+                     q10 = q10,
+                     q90 = q90,
+                     q95 = q95,
                      q97_5 = q97_5)
 
 mx_rhat2 <- max(sum2$rhat,na.rm = TRUE)
