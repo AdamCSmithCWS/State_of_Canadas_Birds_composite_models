@@ -117,6 +117,7 @@ goal_indices_tbl <- readRDS("data/TrendsIndicesGoals.rds") %>%
 species_groups <- readRDS("data/species_groups.rds")%>%
   mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher
                             12231,speciesID))
+
 # additional species names table
 species_names <- readRDS("data/species_names.rds") %>%
   mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher

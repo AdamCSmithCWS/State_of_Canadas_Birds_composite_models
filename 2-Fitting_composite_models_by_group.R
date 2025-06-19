@@ -14,16 +14,26 @@ q2_5 <- function(x)c(q2_5 = quantile(x,probs = c(0.025),
 q97_5 <- function(x)c(q97_5 = quantile(x,probs = c(0.975),
                                        names = FALSE))
 
-q5 <- function(x)c(q2_5 = quantile(x,probs = c(0.05),
+q5 <- function(x)c(q5 = quantile(x,probs = c(0.05),
                                      names = FALSE))
-q95 <- function(x)c(q97_5 = quantile(x,probs = c(0.95),
+q95 <- function(x)c(q95 = quantile(x,probs = c(0.95),
                                        names = FALSE))
 
-q10 <- function(x)c(q2_5 = quantile(x,probs = c(0.1),
+q10 <- function(x)c(q10 = quantile(x,probs = c(0.1),
                                      names = FALSE))
-q90 <- function(x)c(q97_5 = quantile(x,probs = c(0.9),
+q90 <- function(x)c(q90 = quantile(x,probs = c(0.9),
                                        names = FALSE))
 
+
+q25 <- function(x)c(q25 = quantile(x,probs = c(0.25),
+                                   names = FALSE))
+q75 <- function(x)c(q75 = quantile(x,probs = c(0.75),
+                                   names = FALSE))
+
+q20 <- function(x)c(q20 = quantile(x,probs = c(0.20),
+                                   names = FALSE))
+q80 <- function(x)c(q80 = quantile(x,probs = c(0.80),
+                                   names = FALSE))
 
 
 
@@ -93,20 +103,13 @@ if(!drop_low_confidence){
 }
 
 
-re_fit_all <- TRUE
-groups_to_refit <- groups_published
+re_fit_all <- FALSE
+groups_to_refit <- groups_published[c(12,23,25)] #groups_published
 
 for(grp in groups_published){
 
-  # sub_grp <- species_groups %>%
-  #   filter(groupName == grp) %>%
-  #   select(subgroupID) %>%
-  #   distinct() %>%
-  #   #filter(subgroupID!= "NULL") %>%
-  #   unlist() %>%
-  #   as.integer()
 
-  #for(sub_grp in sub_groups_to_fit){
+
     grp_labl <- species_groups %>%
       filter(groupName == grp) %>%
       select(groupName,groupNameFr) %>%
@@ -286,6 +289,10 @@ sum2 <- fit2$summary(variables = NULL,
                      q2_5 = q2_5,
                      q5 = q5,
                      q10 = q10,
+                     q20 = q20,
+                     q25 = q25,
+                     q75 = q75,
+                     q80 = q80,
                      q90 = q90,
                      q95 = q95,
                      q97_5 = q97_5)
@@ -299,6 +306,7 @@ if(mx_rhat2 > 1.02){
                      iter_sampling = 4000,
                      thin = 2,
                      refresh = 0,
+                     adapt_delta = 0.9,
                      show_exceptions = FALSE)
   sum2 <- fit2$summary(variables = NULL,
                        "mean",
@@ -306,6 +314,14 @@ if(mx_rhat2 > 1.02){
                        "ess_bulk",
                        "rhat",
                        q2_5 = q2_5,
+                       q5 = q5,
+                       q10 = q10,
+                       q20 = q20,
+                       q25 = q25,
+                       q75 = q75,
+                       q80 = q80,
+                       q90 = q90,
+                       q95 = q95,
                        q97_5 = q97_5)
   mx_rhat2 <- max(sum2$rhat,na.rm = TRUE)
 }
@@ -348,6 +364,7 @@ species_sel <- species_sel %>%
     }
 annual_status_combine <- bind_rows(annual_status_combine,annual_status_difference)
 
+saveRDS(annual_status_combine,"output/annual_status_combine.rds")
 
 }
 

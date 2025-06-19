@@ -1,0 +1,29 @@
+groupName,groupID,plotting_name
+Waterfowl: All,33,Waterfowl
+Waterfowl: Geese and Swans,33,Geese and Swans
+Waterfowl: Sea Ducks,33,Sea Ducks
+Waterfowl: Freshwater Ducks,33,Freshwater Ducks
+Marine Birds: All,34,Marine Birds
+Shorebirds: All,35,Shorebirds
+Wetland Birds: All,36,Wetland Birds
+Wetland Birds: Wetland Waterfowl,36,Wetland Waterfowl
+Wetland Birds: Other Wetland Birds,36,Other Wetland Birds
+Birds of Prey: All,38,Birds of Prey
+Birds of Prey: Diurnal Birds of Prey,38,Diurnal Birds of Prey
+Birds of Prey: Owls,38,Owls
+Forest Birds: All,39,Forest Birds
+Forest Birds: Migrating to South America,39,Forest Birds Migrating to South America
+Forest Birds: Spending the Winter in Canada,39,Forest Birds Spending the Winter in Canada
+Grassland Birds: All,40,Grassland Birds
+Grassland Birds: Native Grassland Specialists,40,Native Grassland Specialists
+Grassland Birds: Present in Agricultural Landscapes,40,Grassland Birds Present in Agricultural Landscapes
+Aerial Insectivores: All,41,Aerial Insectivores
+"Aerial Insectivores: Swifts, swallows, and nightjars",41,"Swifts, swallows, and nightjars"
+Aerial Insectivores: Flycatchers,41,Flycatchers
+Arctic Birds: All,47,Arctic Birds
+Arctic Birds: Arctic Geese and Swans,47,Arctic Geese and Swans
+Arctic Birds: Other Arctic Birds,47,Other Arctic Birds
+Arctic Birds: Arctic Shorebirds,47,Arctic Shorebirds
+Long-Distance Migrants: All,52,Long-Distance Migrants
+Long-Distance Migrants: Short-Distance Migrants,52,Short-Distance Migrants
+Long-Distance Migrants: Residents,52,Residents
