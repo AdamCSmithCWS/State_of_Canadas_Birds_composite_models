@@ -167,7 +167,7 @@ goal_indices_tbl <- goal_indices_tbl %>%
   distinct()
 
 
-re_summarise_indices <- TRUE
+re_summarise_indices <- FALSE
 
 if(re_summarise_indices){
 all_inds <- goal_indices_tbl %>%

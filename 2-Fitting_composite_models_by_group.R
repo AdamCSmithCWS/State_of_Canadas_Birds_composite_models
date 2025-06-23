@@ -103,7 +103,7 @@ if(!drop_low_confidence){
 }
 
 
-re_fit_all <- FALSE
+re_fit_all <- TRUE
 groups_to_refit <- groups_published[c(12,23,25)] #groups_published
 
 for(grp in groups_published){
@@ -279,7 +279,12 @@ fit2 <- mod2$sample(data = stan_data2,
                     adapt_delta = 0.9,
                     iter_warmup = 2000,
                     iter_sampling = 4000,
-                    show_exceptions = FALSE)
+                    show_exceptions = FALSE,
+                    seed = 2024)
+
+fit2$save_object(paste0("output/stan_fit_",grp_labl,".rds"))
+
+
 
 sum2 <- fit2$summary(variables = NULL,
                      "mean",
@@ -298,6 +303,8 @@ sum2 <- fit2$summary(variables = NULL,
                      q97_5 = q97_5)
 
 mx_rhat2 <- max(sum2$rhat,na.rm = TRUE)
+
+
 
 if(mx_rhat2 > 1.02){
   fit2 <- mod2$sample(data = stan_data2,
@@ -337,6 +344,30 @@ annual_status_difference <- sum2 %>%
          percent_diff_lci = (exp(q2_5)-1)*100,
          percent_diff_uci = (exp(q97_5)-1)*100)
 
+
+p_gt <- function(x,threshold = 0){
+  p <- length(which(x > threshold))/length(x)
+  return(p)
+}
+
+p_lt <- function(x,threshold = 0){
+  p <- length(which(x < threshold))/length(x)
+  return(p)
+}
+
+p_decrease <- fit2$draws(variables = "annual_status",
+                         format = "df") %>%
+  pivot_longer(cols = starts_with("annual_status"),
+               values_to = "annual_status",
+               names_prefix = "annual_status\\[",
+               names_to = "yearn2") %>%
+  mutate(yearn2 = as.integer(gsub("\\]","",yearn2))) %>%
+  group_by(yearn2) %>%
+  summarise(p_decrease = p_lt(annual_status),
+            p_increase = p_gt(annual_status))
+
+annual_status_difference <- annual_status_difference %>%
+  left_join(p_decrease, by = "yearn2")
 
 sigma2 <- sum2 %>%
   filter(grepl("sigma",variable))

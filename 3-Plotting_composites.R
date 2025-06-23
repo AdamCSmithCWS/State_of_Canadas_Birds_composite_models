@@ -5,6 +5,35 @@ library(tidyverse)
 library(readxl)
 library(patchwork)
 library(ggrepel)
+library(naturecounts)
+source("functions/specid_rename.R") #function to reconcile some alternate versions of the species_id column name in NatureCounts
+
+
+#Data on species populations#
+# status_tbl <- nc_query_table(username = "adam.smith",
+#                table = "SocbStatus",
+#                timeout = 120) %>%
+#   rename_with(., .fn = specid_rename) %>%
+#   mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher
+#                             12231,speciesID))
+#
+#
+# saveRDS(status_tbl,"data/SocbStatus.rds")
+status_tbl <- readRDS("data/SocbStatus.rds")
+status_join <- status_tbl %>%
+  filter(popType == 1) %>%
+  select(speciesID,popStatus) %>%
+  mutate(qual_dif = ifelse(popStatus %in% c("LI","MI"),
+                           "increase",
+                           "stable"),
+         qual_dif = ifelse(popStatus %in% c("LD","MD"),
+                           "decrease",
+                           qual_dif),
+         qual_dif = ifelse(popStatus %in% c("DD"),
+                           "data defficient",
+                           qual_dif)) %>%
+  distinct()
+
 
 library(scico) #colour palettes for science that are vision-variation-friendly
 
@@ -94,7 +123,11 @@ names_plot <- main_composites %>%
                           replacement = "")))
 
 
-
+high_level_groups_sorted <- names_plot %>%
+  select(groupName,plotting_name,percent_diff) %>%
+  mutate(plotting_name = factor(plotting_name),
+         plotting_name = fct_reorder(.f = plotting_name,
+                                     .x = percent_diff))
 
 brks_pch <- c(-98,-95,-90,-75,-50,-33,0,50,100,300,500,1000,2000,5000)
 brks_log <- log((brks_pch/100)+1) # above values transformed to original log-scale – used to set the breaks in the log-scale graph below.
@@ -206,13 +239,9 @@ for(i in 1:nrow(groupIDs)){
     left_join(.,sp_y,
               by = c("speciesID","english_name","french_name")) %>%
     filter(year == last_year) %>%
-    mutate(qual_dif = ifelse(percent_dif >= 33,"increase","stable"),
-           qual_dif = ifelse(percent_dif <= -25,"decrease",qual_dif),
-           lbl = paste0(english_name,":",percent_dif,"%"),
-           lblf = paste0(french_name,":",percent_dif,"%"),
-           lbl = ifelse(grepl("100%",lbl),
-                        gsub("100%",">99.9%",lbl,fixed = TRUE),
-                        lbl))
+    mutate(lbl = paste0(english_name),
+           lblf = paste0(french_name)) %>%
+    left_join(status_join, by = "speciesID")
 
   qual_difs <- inds_label %>%
     select(speciesID,qual_dif,prec_plot)
@@ -240,16 +269,18 @@ for(i in 1:nrow(groupIDs)){
     unlist() %>%
     unname()
 
-  stat_sum <- paste("This indicator has",n_inc,"species with Canadian populations that have increased by 33% or more (in blue),",n_stab,"species that have shown little change (in light greeen), and",
-                    n_dec,"species that have decreased by 25% or more (in red) since the base year.")
+  stat_sum <- paste("This indicator includes",n_inc,"species with Canadian populations that have increased (moderate or large increase, in blue),",
+                    n_stab,"species that have shown little change (in light greeen), and",
+                    n_dec,"species that have decreased (moderate or large decrease, in red) over the long-term. Note: the colours and the species population status categories are those from the published species page of the State of Canada's Birds and therefore may not agree with the %-change value at the the end-point of the species' line in the plot.")
 
-  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species status for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines indicating the smoothed annual status of each species that is included in the indicator. The transparency of each species' line represents the mean uncertainty of the estimates of the species' annual rates of population change (more transparent lines reprsent species with higher uncertainty in their annual status and therefore lower weight in the estimation of the mean indicator line)",
+  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species status for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines indicating the smoothed annual status of each specie, included in the indicator. The transparency of each species' line represents the mean uncertainty of the estimates of the species' annual rates of population change (more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line)",
                    stat_sum)
 
   fig_cap <- str_wrap(fig_cap, width = 130)
 
   inds_all_plot <- inds_all_plot %>%
-    left_join(qual_difs)
+    left_join(qual_difs,
+              by = "speciesID")
 
 
   ylimu_spag <- max(inds_all_plot$scaled_status)
@@ -314,5 +345,86 @@ dev.off()
 
 
 
+# group status bar graphs -------------------------------------------------
 
+div_pal1 <- c(scico(palette = "romaO",n = 11)[c(2,5,9)],
+              scico(palette = "tofino",n = 11)[c(8)],grey(0.5))
+names(div_pal1) <- c("Decreased","Little Change","Increased","Assessed","Data Defficient")
+
+
+status_join
+
+status_full <- species_groups %>%
+  left_join(status_join,"speciesID") %>%
+  filter(include == "Y",
+         groupName %in% published_groups) %>%
+  inner_join(high_level_groups_sorted,
+             by = "groupName") %>%
+  mutate(change_category = factor(qual_dif,
+                           levels = c("decrease","stable","increase","Assessed","data defficient"),
+                           ordered = TRUE,
+                           labels = c("Decreased","Little Change","Increased","Assessed","Data Defficient")))
+
+group_size <- status_full %>%
+  group_by(plotting_name) %>%
+  summarise(n_sp = n())%>%
+  arrange(plotting_name)
+
+
+group_size2 <- status_full %>%
+  group_by(plotting_name,change_category) %>%
+  summarise(n_sp = n()) %>%
+  arrange(plotting_name)
+
+status_only <- status_full %>%
+  filter(change_category != "Data Defficient") %>%
+  mutate(plot_column = "status")
+
+status_data <- status_full %>%
+  mutate(qual_dif = ifelse(qual_dif == "data defficient",qual_dif,"Assessed"),
+         plot_column = "data",
+         change_category = factor(qual_dif,
+                                  levels = c("decrease","stable","increase","Assessed","data defficient"),
+                                  ordered = TRUE,
+                                  labels = c("Decreased","Little Change","Increased","Assessed","Data Defficient")))
+
+
+plot_name_tmp <- paste0((group_size$plotting_name)," (",group_size$n_sp,")")
+
+status_plot_data <- status_only %>%
+  bind_rows(status_data) %>%
+  mutate(Information = factor(plot_column,
+                              levels = c("data","status"),
+                              ordered = TRUE,
+                              labels = c("Assessed","Status if Assessed"))) %>%
+  inner_join(group_size,by = "plotting_name") %>%
+  arrange(plotting_name) %>%
+  mutate(plotting_name2 = paste0(plotting_name," (",n_sp,")"),
+         plotting_name2 = factor(plotting_name2,
+                                ordered = TRUE,
+                                levels = plot_name_tmp))
+
+status_plot <- ggplot(data = status_plot_data)+
+  geom_bar(aes(fill = change_category,
+               y = plotting_name2),
+           position = "fill")+
+  xlab("Percent of species in group   Percent of species assessed")+
+  ylab("")+
+  scale_x_continuous(breaks = c(0,0.25,0.5,0.75,1),
+                     labels = c("0","25","50","75","100"))+
+  scale_colour_manual(values = div_pal1,aesthetics = "fill",
+                      name = "",
+                      guide = guide_legend(reverse = TRUE))+
+  facet_wrap(vars(Information))+
+  theme_minimal()+
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_text(size = 10))
+
+status_plot
+
+pdf("Figures/Species_status_summary.pdf",
+    width = 7,
+    height = 5)
+print(status_plot)
+dev.off()
 
