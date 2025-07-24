@@ -47,6 +47,7 @@ group_drop <- c("Edge/Early",
                 "Piscivores",
                 "Galliformes",
                 "Harvested",
+                "Waterfowl: Ducks",
                 "Dabblers",
                 "Diving Ducks",
                 "Treed Wetland Birds",
@@ -77,6 +78,24 @@ table_out <- sp_g %>%
   select(-contains(group_drop)) %>%
   rename(NatureCounts_speciesID = speciesID)
 
+
+survey_join <- data.frame(resultsCode = c("LINCOLN",
+                                          "CBC",
+                                          "BBS",
+                                          "WBPHS",
+                                          "SCMP",
+                                          "PRISM",
+                                          "BCCWS",
+                                          "No suitable data"),
+                          Main_Survey = c("Lincoln Estimates of Population Size",
+                                          "Christmas Bird Count (CBC)",
+                                          "North American Breeding Bird Survey (BBS)",
+                                          "Waterfowl Breeding Population and Habitat Survey in Western Canada and the Northwestern United States",
+                                          "Seabird Colony Monitoring Program",
+                                          "Program for Regional and International Shorebird Monitoring (PRISM) - Fall Migration",
+                                          "British Columbia Coastal Waterbird Survey",
+                                          "No Suitable Data")
+                          )
 # manual re-setting of Red Knot PRISM data as full species ----------------
 # manual step necessary because species account was modified between the
 # model runs for the publication and the release of the report
@@ -101,17 +120,22 @@ rank_tbl <- readRDS("data/SocbTrendRank.rds")%>%
 
 table_out_w_survey<- table_out %>%
   left_join(rank_tbl,
-            by = c("NatureCounts_speciesID" = "speciesID")) %>%
-  relocate(scientific_name,english_name,french_name,
-           resultsCode) %>%
+            by = c("NatureCounts_speciesID" = "speciesID"))%>%
   mutate(resultsCode = ifelse(is.na(resultsCode),
                               "No suitable data",
                               resultsCode)) %>%
-  select(-taxon_group)
+  left_join(survey_join,
+            by = "resultsCode") %>%
+  select(-c(resultsCode,taxon_group)) %>%
+  relocate(scientific_name,english_name,french_name,
+           Main_Survey) %>%
+  rename(Scientific_Name = scientific_name,
+         English_Name = english_name,
+         French_Name = french_name)
 
 
 
-miss_sp <- table_out_w_survey %>% filter(is.na(resultsCode))
+miss_sp <- table_out_w_survey %>% filter(is.na(Main_Survey))
 
 write_excel_csv(table_out_w_survey,"Wide_format_SOCB_species_table.csv")
 

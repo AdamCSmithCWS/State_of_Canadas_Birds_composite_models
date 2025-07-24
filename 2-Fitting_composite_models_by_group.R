@@ -104,7 +104,7 @@ if(!drop_low_confidence){
 
 
 re_fit_all <- TRUE
-groups_to_refit <- groups_published[c(12,23,25)] #groups_published
+groups_to_refit <- groups_published #groups_published
 
 for(grp in groups_published){
 

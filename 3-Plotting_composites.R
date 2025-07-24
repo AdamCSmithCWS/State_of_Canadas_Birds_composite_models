@@ -185,7 +185,7 @@ dev.off()
 # Supplemental Spaghetti Plots --------------------------------------------
 
 
-div_pal <- scico(palette = "romaO",n = 11)[c(3,5,10)]
+div_pal <- scico(palette = "romaO",n = 11)[c(2,5,9)]
 names(div_pal) <- c("decrease","stable","increase")
 
 pdf(paste0("figures/supplemental_figures.pdf"),
@@ -270,10 +270,10 @@ for(i in 1:nrow(groupIDs)){
     unname()
 
   stat_sum <- paste("This indicator includes",n_inc,"species with Canadian populations that have increased (moderate or large increase, in blue),",
-                    n_stab,"species that have shown little change (in light greeen), and",
-                    n_dec,"species that have decreased (moderate or large decrease, in red) over the long-term. Note: the colours and the species population status categories are those from the published species page of the State of Canada's Birds and therefore may not agree with the %-change value at the the end-point of the species' line in the plot.")
+                    n_stab,"species that have shown little change (in light green), and",
+                    n_dec,"species that have decreased (moderate or large decrease, in red) over the long-term. Note: the colours representing the species population status categories are those from the published species account of The State of Canada's Birds and therefore may not agree with the percent-change value at the the end-point of the species' line in the plot, which includes the additional effect of the first-stage smoothing analysis.")
 
-  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species status for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines indicating the smoothed annual status of each specie, included in the indicator. The transparency of each species' line represents the mean uncertainty of the estimates of the species' annual rates of population change (more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line)",
+  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species percent population change for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines indicating the smoothed annual status of each species included in the indicator. The transparency of each species' line represents the mean uncertainty of the estimates of the species' annual rates of population change (i.e., more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line)",
                    stat_sum)
 
   fig_cap <- str_wrap(fig_cap, width = 130)
@@ -335,13 +335,160 @@ for(i in 1:nrow(groupIDs)){
   saveRDS(tst2,paste0("figures/saved_rds/",grp_labl,"supplement.rds"))
 
 
-
 }
 dev.off()
 
 
 
 
+# Spaghetti figure for publication ----------------------------------------
+
+i = 20 # swallows swifts, nightjars
+
+grp <- groupIDs[i,"groupName"]
+grpID <- groupIDs[i,"groupID"]
+grp_plot <- unlist(groupIDs[i,"plotting_name"])
+
+grp_labl1 <- species_groups %>%
+  filter(groupName == grp) %>%
+  select(groupName,groupNameFr) %>%
+  distinct() %>%
+  unlist() %>%
+  unname()
+grp_labl <- gsub("[[:punct:]]","",x = grp_labl1)
+grp_labl <- gsub("[[:blank:]]","_",x = grp_labl)
+grp_labl <- paste(grp_labl,collapse = "-")
+
+
+if(!file.exists(paste0("output/composite_fit_",grp_labl,".rds"))){next}
+
+annual_status_difference <- readRDS(paste0("output/composite_fit_",grp_labl,".rds"))
+inds_all <- readRDS(paste0("output/composite_data_",grp_labl,".rds"))
+species_sel <- readRDS(paste0("output/composite_species_list_",grp_labl,".rds"))
+inds_w_low_conf <- readRDS(paste0("output/composite_data_w_low_confid_",grp_labl,".rds"))
+
+
+
+
+
+inds_all_plot <- all_smoothed_indices %>%
+  filter(speciesID %in% species_sel$speciesID) %>%
+  mutate(percent_dif = round((exp(scaled_status)-1)*100))
+
+
+sp_y <- inds_all_plot %>%
+  group_by(speciesID,english_name, french_name) %>%
+  summarise(first_year = min(year),
+            last_year = max(year),
+            mean_prec = 1/(mean(annual_diff_sd,na.rm = TRUE)),
+            .groups = "drop") %>%
+  mutate(prec_plot = scale(mean_prec, center = FALSE))
+
+
+
+inds_label <- inds_all_plot %>%
+  left_join(.,sp_y,
+            by = c("speciesID","english_name","french_name")) %>%
+  filter(year == last_year) %>%
+  mutate(lbl = paste0(english_name),
+         lblf = paste0(french_name)) %>%
+  left_join(status_join, by = "speciesID")
+
+qual_difs <- inds_label %>%
+  select(speciesID,qual_dif,prec_plot)
+
+
+n_status <- qual_difs %>%
+  group_by(qual_dif) %>%
+  summarise(n = n())
+
+n_dec <- n_status %>%
+  filter(qual_dif == "decrease") %>%
+  select(n) %>%
+  unlist() %>%
+  unname()
+
+n_stab <- n_status %>%
+  filter(qual_dif == "stable") %>%
+  select(n) %>%
+  unlist() %>%
+  unname()
+
+n_inc <- n_status %>%
+  filter(qual_dif == "increase") %>%
+  select(n) %>%
+  unlist() %>%
+  unname()
+
+stat_sum <- paste("This indicator includes",n_inc,"species with Canadian populations that have increased (moderate or large increase, in blue),",
+                  n_stab,"species that have shown little change (in light greeen), and",
+                  n_dec,"species that have decreased (moderate or large decrease, in red) over the long-term. Note: the colours and the species population status categories are those from the published species page of the State of Canada's Birds and therefore may not agree with the %-change value at the the end-point of the species' line in the plot.")
+
+fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species status for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines indicating the smoothed annual status of each specie, included in the indicator. The transparency of each species' line represents the mean uncertainty of the estimates of the species' annual rates of population change (more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line)",
+                 stat_sum)
+
+fig_cap <- str_wrap(fig_cap, width = 130)
+
+inds_all_plot <- inds_all_plot %>%
+  left_join(qual_difs,
+            by = "speciesID")
+
+
+ylimu_spag <- max(inds_all_plot$scaled_status)
+yliml_spag <- min(inds_all_plot$scaled_status)
+
+
+
+
+tst3 <- ggplot(data = annual_status_difference,
+               aes(x = year,y = mean))+
+  geom_hline(yintercept = 0)+
+  geom_line(data = inds_all_plot,
+            aes(x = year,y = scaled_status,
+                group = speciesID,
+                colour = qual_dif,
+                alpha = prec_plot),
+            #alpha = 0.3,
+            inherit.aes = FALSE)+
+  geom_ribbon(aes(ymin = q2_5,ymax = q97_5),
+              alpha = 0.2)+
+  geom_line()+
+  ggrepel::geom_text_repel(data = inds_label,
+                           aes(x = year,y = scaled_status,
+                               label = lbl,
+                               colour = qual_dif),
+                           size = 3,
+                           max.overlaps = 30,
+                           min.segment.length = 0,
+                           nudge_x = 6,
+                           alpha = 1,
+                           box.padding = 0.1,
+                           segment.alpha = 0.3,
+                           segment.size = 0.2,
+                           hjust = "left")+
+  scale_y_continuous(breaks = brks_log,
+                     labels = brks_labs,
+                     limits = c(yliml_spag,ylimu_spag))+
+  scale_x_continuous(limits = c(1970,2050),
+                     breaks = seq(1970,2020,by = 10),
+                     expand = c(0,0))+
+  scale_colour_manual(values = div_pal)+
+  #labs(caption = fig_cap)+
+  xlab("")+
+  ylab("Percent change since first year")+
+  theme_bw()+
+  theme(legend.position = "none")
+
+print(tst3)
+
+pdf("Figures/Spaghetti_example.pdf",
+    width = 7,
+    height = 5)
+print(tst3)
+dev.off()
+
+
+saveRDS(tst3,paste0("figures/saved_rds/",grp_labl,"spaghetti_example_for)publication.rds"))
 
 
 
