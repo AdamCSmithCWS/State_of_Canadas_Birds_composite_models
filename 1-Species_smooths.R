@@ -71,7 +71,7 @@ if(re_download){
   #
   species_groups <- nc_query_table(table = "SocbTrendGroups",
                                    username = "adam.smith",
-                                   verbose = TRUE) %>%
+                                   verbose = TRUE)%>%
     rename_with(., .fn = specid_rename) %>%
     mutate(groupName = gsub("\r\n",
                             "",
@@ -81,9 +81,13 @@ if(re_download){
                               "",
                               x = groupNameFr,
                               fixed = TRUE),
-           include = toupper(include)) %>%
-    filter(!(speciesID == 12231 & populationID == 8414)) # adjusting Western Flycatcher for recent change in taxonomy
+           include = toupper(include))%>%
+      mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher
+                                12231,speciesID)) %>%
+    filter(!(groupName == "Wetland Birds: All" & subgroupID != 0))
 
+    # wetland <- species_groups %>%
+    #   filter(groupName == "Wetland Birds: All")
 
   saveRDS(species_groups,"data/species_groups.rds")
 
@@ -114,15 +118,10 @@ goal_indices_tbl <- readRDS("data/TrendsIndicesGoals.rds") %>%
   rename_with(.,.fn = specid_rename)
 
 # species inclusion table for composite groups
-species_groups <- readRDS("data/species_groups.rds")%>%
-  mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher
-                            12231,speciesID))
+species_groups <- readRDS("data/species_groups.rds")
 
 # additional species names table
-species_names <- readRDS("data/species_names.rds") %>%
-  mutate(speciesID = ifelse(speciesID == 12250,  # correcting the treatment of Western Flycatcher
-                            12231,speciesID))
-
+species_names <- readRDS("data/species_names.rds")
 # Prepare data for smooth models ------------------------------------------
 
 base_year <- 1970
@@ -138,6 +137,8 @@ rank_tbl <- rank_tbl %>%
 
 tst<- rank_tbl %>%
   anti_join(species_names)
+
+
 if(nrow(tst) > 0){stop(paste(nrow(tst),"species are missing from at least one dataset"))}
 
 sp_simple <- sp_tbl %>%
@@ -167,7 +168,7 @@ goal_indices_tbl <- goal_indices_tbl %>%
   distinct()
 
 
-re_summarise_indices <- FALSE
+re_summarise_indices <- TRUE
 
 if(re_summarise_indices){
 all_inds <- goal_indices_tbl %>%
@@ -180,14 +181,16 @@ all_inds <- goal_indices_tbl %>%
 miss_inds <- all_inds %>%
   filter(index <= 0 |
            indexLowerCI <= 0 |
-           is.infinite(indexUpperCI))
+           is.infinite(indexUpperCI) |
+           is.na(indexLowerCI))
 
 # fix the lower CI for these 0 values so they can be log-transformed
 if(nrow(miss_inds) > 0){
   miss_sp <- unique(miss_inds$speciesCode)
   all_inds <- all_inds %>%
     rowwise() %>%
-    mutate(indexLowerCI = ifelse(indexLowerCI == 0,max(0.1,index-indexUpperCI),indexLowerCI)) #fixes lower bound for a handful of
+    mutate(indexLowerCI = ifelse(indexLowerCI == 0 | is.na(indexLowerCI),index*0.5,indexLowerCI),
+           indexUpperCI = ifelse(indexUpperCI == 0 | is.na(indexUpperCI),index*1.5,indexUpperCI)) #fixes lower bound for a handful of
   warning(paste((paste(miss_sp,collapse = ", ")),"had missing index or CI information. Zeros have been replaced with arbitrarily small values"))
 }
 

@@ -17,9 +17,7 @@ species_groups <- species_groups %>%
                             12231,speciesID))
 
 
-species_names <- readRDS("data/species_names.rds") %>%
-  mutate(speciesID = ifelse(speciesID == 12250,
-                            12231,speciesID))
+species_names <- readRDS("data/species_names.rds")
 
 
 
@@ -80,6 +78,7 @@ table_out <- sp_g %>%
 
 
 survey_join <- data.frame(resultsCode = c("LINCOLN",
+                                          "MIDWINTER",
                                           "CBC",
                                           "BBS",
                                           "WBPHS",
@@ -88,6 +87,7 @@ survey_join <- data.frame(resultsCode = c("LINCOLN",
                                           "BCCWS",
                                           "No suitable data"),
                           Main_Survey = c("Lincoln Estimates of Population Size",
+                                          "Midwinter Surveys",
                                           "Christmas Bird Count (CBC)",
                                           "North American Breeding Bird Survey (BBS)",
                                           "Waterfowl Breeding Population and Habitat Survey in Western Canada and the Northwestern United States",
@@ -103,8 +103,8 @@ survey_join <- data.frame(resultsCode = c("LINCOLN",
 # represent the published results.
 rank_tbl <- readRDS("data/SocbTrendRank.rds")%>%
   rename_with(.,.fn = specid_rename) %>%
-  mutate(popType = ifelse(speciesID == 4670 & subspeciesID == 47598 & resultsCode == "PRISM",
-                          1,popType)) %>%
+  # mutate(popType = ifelse(speciesID == 4670 & subspeciesID == 47598 & resultsCode == "PRISM",
+  #                         1,popType)) %>%
   select(trendID,goalTrend,popID,rank,speciesID,subspeciesID,trendID,
          resultsCode,popType,areaCode)%>%
   filter(goalTrend == "Y",
@@ -112,6 +112,13 @@ rank_tbl <- readRDS("data/SocbTrendRank.rds")%>%
   select(speciesID,
          resultsCode,areaCode)%>%
   distinct()
+
+# rank_tbl <- rank_tbl %>%
+#   select(trendID,goalTrend,popID,rank,speciesID,subspeciesID,trendID,
+#          resultsCode,popType,areaCode)%>%
+#   filter(goalTrend == "Y",
+#          popType == 1) %>%
+#   distinct()
 
 
 

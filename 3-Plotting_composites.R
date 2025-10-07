@@ -53,10 +53,35 @@ all_smoothed_indices <- readRDS("data/socb_smoothed_indices.rds") %>%
 
 
 published_groups <- readRDS("data/published_groups.rds")
-species_groups <- readRDS("data/species_groups.rds")
+
+species_groups <- readRDS("data/species_groups.rds")# %>%
+  # select(-populationID) %>%
+  # distinct()
+
+
+tst_sp_gr <- species_groups %>%
+  group_by(groupName,speciesID,populationID) %>%
+  summarise(n = n(),
+            n_include = length(unique(include)))
+
 
 
 all_composites <- readRDS("output/annual_status_combine.rds")
+
+# shore <- all_composites %>% filter(groupName == "Shorebirds: All") %>%
+#   group_by(year) %>%
+#   sample_n(1)
+#
+# all_composites <- all_composites %>% filter(!groupName == "Shorebirds: All") %>%
+#   bind_rows(shore)
+#
+# water <- all_composites %>% filter(groupName == "Waterfowl: All") %>%
+#   group_by(year) %>%
+#   sample_n(1)
+#
+# all_composites <- all_composites %>% filter(!groupName == "Waterfowl: All") %>%
+#   bind_rows(water)
+# saveRDS(all_composites,"output/annual_status_combine_2.rds")
 
 
 ## this csv file was manually modified to add more meaningful plotting names
@@ -128,6 +153,18 @@ high_level_groups_sorted <- names_plot %>%
   mutate(plotting_name = factor(plotting_name),
          plotting_name = fct_reorder(.f = plotting_name,
                                      .x = percent_diff))
+
+
+
+
+
+
+
+
+
+
+# end set up --------------------------------------------------------------
+
 
 brks_pch <- c(-98,-95,-90,-75,-50,-33,0,50,100,300,500,1000,2000,5000)
 brks_log <- log((brks_pch/100)+1) # above values transformed to original log-scale – used to set the breaks in the log-scale graph below.
@@ -286,7 +323,11 @@ for(i in 1:nrow(groupIDs)){
   ylimu_spag <- max(inds_all_plot$scaled_status)
   yliml_spag <- min(inds_all_plot$scaled_status)
 
-
+if(nrow(inds_label) > 75){
+  sz = 1.75
+}else{
+  sz = 2.5
+}
 
 
   tst2 <- ggplot(data = annual_status_difference,
@@ -306,10 +347,10 @@ for(i in 1:nrow(groupIDs)){
                              aes(x = year,y = scaled_status,
                                  label = lbl,
                                  colour = qual_dif),
-                             size = 1,
+                             size = sz,
                              max.overlaps = 30,
                              min.segment.length = 0,
-                             nudge_x = 6,
+                             nudge_x = 10,
                              alpha = 1,
                              box.padding = 0.1,
                              segment.alpha = 0.3,
@@ -496,7 +537,7 @@ saveRDS(tst3,paste0("figures/saved_rds/",grp_labl,"spaghetti_example_for)publica
 
 div_pal1 <- c(scico(palette = "romaO",n = 11)[c(2,5,9)],
               scico(palette = "tofino",n = 11)[c(8)],grey(0.5))
-names(div_pal1) <- c("Decreased","Little Change","Increased","Assessed","Data Defficient")
+names(div_pal1) <- c("Decreased","Little Change","Increased","Status Assigned","Data Defficient")
 
 
 status_join
@@ -504,13 +545,13 @@ status_join
 status_full <- species_groups %>%
   left_join(status_join,"speciesID") %>%
   filter(include == "Y",
-         groupName %in% published_groups) %>%
+         groupName %in% published_groups)  %>%
   inner_join(high_level_groups_sorted,
-             by = "groupName") %>%
+             by = "groupName") %>%           #, relationship = "many-to-many"
   mutate(change_category = factor(qual_dif,
-                           levels = c("decrease","stable","increase","Assessed","data defficient"),
+                           levels = c("decrease","stable","increase","data defficient","Assessed"),
                            ordered = TRUE,
-                           labels = c("Decreased","Little Change","Increased","Assessed","Data Defficient")))
+                           labels = c("Decreased","Little Change","Increased","Data Defficient","Status Assigned")))
 
 group_size <- status_full %>%
   group_by(plotting_name) %>%
@@ -531,9 +572,9 @@ status_data <- status_full %>%
   mutate(qual_dif = ifelse(qual_dif == "data defficient",qual_dif,"Assessed"),
          plot_column = "data",
          change_category = factor(qual_dif,
-                                  levels = c("decrease","stable","increase","Assessed","data defficient"),
+                                  levels = c("decrease","stable","increase","data defficient","Assessed"),
                                   ordered = TRUE,
-                                  labels = c("Decreased","Little Change","Increased","Assessed","Data Defficient")))
+                                  labels = c("Decreased","Little Change","Increased","Data Defficient","Status Assigned")))
 
 
 plot_name_tmp <- paste0((group_size$plotting_name)," (",group_size$n_sp,")")
@@ -543,7 +584,7 @@ status_plot_data <- status_only %>%
   mutate(Information = factor(plot_column,
                               levels = c("data","status"),
                               ordered = TRUE,
-                              labels = c("Assessed","Status if Assessed"))) %>%
+                              labels = c("All Species\n(percent of species\nin group)","Status assigned\n(percent of species\nwith assigned status)"))) %>%
   inner_join(group_size,by = "plotting_name") %>%
   arrange(plotting_name) %>%
   mutate(plotting_name2 = paste0(plotting_name," (",n_sp,")"),
@@ -555,18 +596,25 @@ status_plot <- ggplot(data = status_plot_data)+
   geom_bar(aes(fill = change_category,
                y = plotting_name2),
            position = "fill")+
-  xlab("Percent of species in group   Percent of species assessed")+
+  xlab("Percent of species")+
   ylab("")+
   scale_x_continuous(breaks = c(0,0.25,0.5,0.75,1),
-                     labels = c("0","25","50","75","100"))+
+                     labels = c("0","25","50","75","100"),
+                     expand = expansion())+
+  scale_y_discrete(expand = expansion())+
   scale_colour_manual(values = div_pal1,aesthetics = "fill",
                       name = "",
                       guide = guide_legend(reverse = TRUE))+
-  facet_wrap(vars(Information))+
-  theme_minimal()+
+  facet_wrap(vars(Information),
+             strip.position = c("top"),
+             axes = "all_x")+
+  theme_bw()+
   theme(panel.grid = element_blank(),
-        axis.title.x = element_text(size = 10))
+        axis.title.x = element_text(size = 9),
+        panel.spacing.x = unit(1,"cm"))
 
+
+############## Figure out why there is one extra aerial insectivore and one extra forest bird
 status_plot
 
 pdf("Figures/Species_status_summary.pdf",
@@ -574,4 +622,40 @@ pdf("Figures/Species_status_summary.pdf",
     height = 5)
 print(status_plot)
 dev.off()
+
+
+
+
+
+
+# Status and Confidence Summaries -----------------------------------------
+
+
+all_inds <- readRDS("data/all_socb_goal_indices.rds") %>%
+  select(-c(english_name,french_name,taxon_group,scientific_name,yearn))
+
+
+species_confidence <- all_inds %>%
+  select(speciesID,confidence) %>%
+  distinct()
+
+
+rank_tbl <- readRDS("data/SocbTrendRank.rds") %>%
+  rename_with(.,.fn = specid_rename)
+
+rank_tbl <- rank_tbl %>%
+  select(trendID,goalTrend,popID,rank,speciesID,subspeciesID,trendID,
+         resultsCode,popType,areaCode)%>%
+  filter(goalTrend == "Y",
+         popType == 1) #%>%
+  distinct() %>%
+  inner_join(species_confidence)
+
+
+
+  table(species_confidence$confidence)
+
+
+
+
 
