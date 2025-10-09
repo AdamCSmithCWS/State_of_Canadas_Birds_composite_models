@@ -1,0 +1,28 @@
+plotting_name,groupName,groupID,summary_plot,year,percent_diff,percent_diff_lci,percent_diff_uci,p_decrease,p_increase,start_year
+Waterfowl,Waterfowl: All,33,Yes,2022,58.1,6.58,133,0.0101,0.99,1970
+Geese and Swans,Waterfowl: Geese and Swans,33,No,2021,801,219,2470,0,1,1970
+Sea Ducks,Waterfowl: Sea Ducks,33,No,2021,-4.31,-17.9,10.9,0.716,0.284,1970
+Freshwater Ducks,Waterfowl: Freshwater Ducks,33,No,2022,38.2,0.787,89.5,0.0224,0.978,1970
+Birds of Prey,Birds of Prey: All,38,Yes,2022,35,-3.15,87.9,0.0382,0.962,1970
+Diurnal Birds of Prey,Birds of Prey: Diurnal Birds of Prey,38,No,2022,64.2,13.5,138,0.00406,0.996,1970
+Owls,Birds of Prey: Owls,38,No,2021,1.03,-27.4,40.2,0.479,0.521,1970
+Wetland Birds,Wetland Birds: All,36,Yes,2022,22.4,-13.5,73.8,0.129,0.871,1970
+Wetland Waterfowl,Wetland Birds: Wetland Waterfowl,36,No,2022,77.6,20.9,160,0.0015,0.998,1970
+Other Wetland Birds,Wetland Birds: Other Wetland Birds,36,No,2022,1.12,-27.4,40.4,0.473,0.527,1970
+Marine Birds,Marine Birds: All,34,Yes,2021,0.68,-21.8,30.1,0.48,0.52,1970
+Forest Birds,Forest Birds: All,39,Yes,2022,-0.766,-24.5,30.1,0.522,0.478,1970
+Forest Birds Spending the Winter in Canada,Forest Birds: Spending the Winter in Canada,39,No,2022,15.4,-11.4,50,0.142,0.858,1970
+Arctic Birds,Arctic Birds: All,47,Yes,2021,-22.6,-45.8,10.6,0.922,0.078,1970
+Other Arctic Birds,Arctic Birds: Other Arctic Birds,47,No,2021,-13.2,-33,12.8,0.857,0.143,1970
+Arctic Shorebirds,Arctic Birds: Arctic Shorebirds,47,No,2019,-51.5,-61,-40.1,1,0,1980
+Arctic Geese and Swans,Arctic Birds: Arctic Geese and Swans,47,No,2021,531,100,1880,0.00112,0.999,1970
+Long-Distance Migrants,Long-Distance Migrants: All,52,Yes,2022,-28.6,-48.8,-0.382,0.977,0.0234,1970
+Short-Distance Migrants,Long-Distance Migrants: Short-Distance Migrants,52,No,2022,-10.6,-36,25.8,0.74,0.26,1970
+Residents,Long-Distance Migrants: Residents,52,No,2022,7.94,-26.9,60.8,0.353,0.647,1970
+Shorebirds,Shorebirds: All,35,Yes,2019,-40.4,-56,-19.2,1,4.38e-4,1980
+Aerial Insectivores,Aerial Insectivores: All,41,Yes,2022,-42,-58.4,-19,0.999,8.75e-4,1970
+"Swifts, swallows, and nightjars","Aerial Insectivores: Swifts, swallows, and nightjars",41,No,2022,-59.8,-73.3,-39.3,1,0,1970
+Flycatchers,Aerial Insectivores: Flycatchers,41,No,2022,-22.1,-43,6.61,0.939,0.0612,1970
+Grassland Birds,Grassland Birds: All,40,Yes,2022,-67.2,-81.9,-40.1,1,0,1970
+Native Grassland Specialists,Grassland Birds: Native Grassland Specialists,40,No,2022,-90.3,-95.9,-77.1,1,0,1970
+Grassland Birds Present in Agricultural Landscapes,Grassland Birds: Present in Agricultural Landscapes,40,No,2022,-41.8,-62.1,-11.2,0.994,0.00569,1970

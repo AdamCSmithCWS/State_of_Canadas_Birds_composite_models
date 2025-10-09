@@ -94,6 +94,15 @@ all_composites <- readRDS("output/annual_status_combine.rds")
 
 groupIDs <- read.csv("data/group_plotting_names.csv")
 
+
+high_level_groups <- groupIDs %>%
+  filter(grepl(" All",groupName)) %>%
+  mutate(facet = c(1,2,2,3,4,1,4,1,4,3))
+
+groupIDs <- groupIDs %>%
+  mutate(summary_plot = ifelse(groupName %in% high_level_groups$groupName,
+                               "Yes","No"))
+
 all_composites_out <- all_composites %>%
   inner_join(.,groupIDs) %>%
   rename(log_scale_indicator = mean,
@@ -105,18 +114,58 @@ all_composites_out <- all_composites %>%
            percent_diff, percent_diff_lci, percent_diff_uci) %>%
   select(-c(ess_bulk,rhat,yearn2,model,variable)) %>%
   mutate(across(log_scale_indicator:percent_diff_uci,
-                .fns = ~signif(.x,digits = 4)))
+                .fns = ~signif(.x,digits = 4))) %>%
+  relocate(plotting_name,
+           groupName,
+           groupID,
+           summary_plot,
+           year,
+           percent_diff,
+           percent_diff_lci,
+           percent_diff_uci,
+           p_decrease,
+           p_increase)
+
+
 
 # Share composite_indicators_all.csv with Catherine for upload ------------
 write_csv(all_composites_out,"composite_indicators_all.csv")
 
+start_years <- all_composites_out %>%
+  group_by(plotting_name,
+           groupName,
+           groupID,
+           summary_plot) %>%
+  filter(year == min(year)) %>%
+  rename(start_year = year) %>%
+  ungroup() %>%
+  select(groupName,start_year)
 
+
+final_percent_change <- all_composites_out %>%
+  group_by(plotting_name,
+           groupName,
+           groupID,
+           summary_plot) %>%
+  filter(year == max(year)) %>%
+  select(plotting_name,
+         groupName,
+         groupID,
+         summary_plot,
+         year,
+         percent_diff,
+         percent_diff_lci,
+         percent_diff_uci,
+         p_decrease,
+         p_increase) %>%
+  mutate(across(percent_diff:p_increase,~signif(.x,3))) %>%
+  left_join(start_years)
+
+write_csv(final_percent_change,
+          "final_percent_change_values_groups_subgroups.csv")
 
 # Group-level models ------------------------------------------------------
 
-high_level_groups <- groupIDs %>%
-  filter(grepl(" All",groupName)) %>%
-  mutate(facet = c(1,2,2,3,4,1,4,1,4,3))
 
 high_level_groups
 # groupName groupID
@@ -308,9 +357,9 @@ for(i in 1:nrow(groupIDs)){
 
   stat_sum <- paste("This indicator includes",n_inc,"species with Canadian populations that have increased (moderate or large increase, in blue),",
                     n_stab,"species that have shown little change (in light green), and",
-                    n_dec,"species that have decreased (moderate or large decrease, in red) over the long-term. Note: the colours representing the species population status categories are those from the published species account of The State of Canada's Birds and therefore may not agree with the percent-change value at the the end-point of the species' line in the plot, which includes the additional effect of the first-stage smoothing analysis.")
+                    n_dec,"species that have decreased (moderate or large decrease, in red) over the long-term. Note: the colours representing each species population status categories are based on the species' status assessment in the published species account of The State of Canada's Birds and may differ from the change value at the end-point of the species' lines in the plot, which includes the precision-weighted smoothing in the first-stage of the analysis.")
 
-  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species percent population change for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines indicating the smoothed annual precent change values of each species included in the indicator. The transparency of each species' line represents the mean uncertainty of the estimates of the species' annual rates of population change (i.e., more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line)",
+  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species percent population change for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines reflecting the approximate contribution each species makes to the indicator. These coloured lines are the cumulative annual precent change values of each species included in the indicator, and the transparency of each line shows the mean uncertainty of the estimates of the species' annual rates of population change (i.e., more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line)",
                    stat_sum)
 
   fig_cap <- str_wrap(fig_cap, width = 130)

@@ -139,7 +139,7 @@ tst<- rank_tbl %>%
   anti_join(species_names)
 
 
-if(nrow(tst) > 0){stop(paste(nrow(tst),"species are missing from at least one dataset"))}
+if(nrow(tst) > 0){warning(paste(nrow(tst),"species are missing from at least one dataset"))}
 
 sp_simple <- sp_tbl %>%
   select(speciesCode,speciesID,
@@ -168,7 +168,7 @@ goal_indices_tbl <- goal_indices_tbl %>%
   distinct()
 
 
-re_summarise_indices <- TRUE
+re_summarise_indices <- FALSE
 
 if(re_summarise_indices){
 all_inds <- goal_indices_tbl %>%
@@ -218,6 +218,60 @@ saveRDS(all_inds,"data/all_socb_goal_indices.rds")
 all_inds <- readRDS("data/all_socb_goal_indices.rds")
 
 }
+
+species_in_groups <- species_groups %>%
+  filter(include == "Y") %>%
+  select(speciesID) %>%
+  distinct() %>%
+  left_join(species_names)
+
+species_excluded <- c("Anna's Hummingbird", "Black Vulture", "Black-necked Stilt",
+                      "Blue-gray Gnatcatcher", "Blue-winged Warbler", "California Scrub-Jay",
+                      "Carolina Wren", "Dickcissel", "Eurasian Wigeon", "Fish Crow",
+                      "Gray Flycatcher", "Great Egret", "Red-bellied Woodpecker",
+                      "Tufted Duck", "Tufted Titmouse",
+                      "White-faced Ibis", "Wild Turkey" )
+
+if(any(species_excluded %in% species_in_groups$english_name)){
+  stop("exluded species have been included")
+}
+
+# export original indices for WWF -----------------------------------------
+survey_join <- data.frame(resultsCode = c("LINCOLN",
+                                          "MIDWINTER",
+                                          "CBC",
+                                          "BBS",
+                                          "WBPHS",
+                                          "SCMP",
+                                          "PRISM",
+                                          "BCCWS",
+                                          "No suitable data"),
+                          Main_Survey = c("Lincoln Estimates of Population Size",
+                                          "Midwinter Surveys",
+                                          "Christmas Bird Count (CBC)",
+                                          "North American Breeding Bird Survey (BBS)",
+                                          "Waterfowl Breeding Population and Habitat Survey in Western Canada and the Northwestern United States",
+                                          "Seabird Colony Monitoring Program",
+                                          "Program for Regional and International Shorebird Monitoring (PRISM) - Fall Migration",
+                                          "British Columbia Coastal Waterbird Survey",
+                                          "No Suitable Data")
+)
+all_inds_wwf <- all_inds %>%
+  filter(speciesID %in% species_in_groups$speciesID) %>%
+  select(english_name,french_name,scientific_name,speciesCode,
+         year, index, indexUpperCI, indexLowerCI,
+         resultsCode,population,areaCode,trendID,speciesID) %>%
+  left_join(survey_join, by = "resultsCode")%>%
+    rename(naturecounts_trendID = trendID,
+           naturecounts_speciesID = speciesID,
+           naturecounts_resultsCode = resultsCode,
+           naturecounts_areaCode_for_resultsCode = areaCode)
+
+today <- date(Sys.time())
+
+write_excel_csv(all_inds_wwf,
+                paste0("all_State_of_Canadas_Birds_indices_",today,".csv"))
+
 
 
 all_sp <- unique(all_inds$speciesID)
