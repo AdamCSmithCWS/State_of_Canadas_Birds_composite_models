@@ -54,6 +54,7 @@ all_smoothed_indices <- readRDS("data/socb_smoothed_indices.rds") %>%
 
 published_groups <- readRDS("data/published_groups.rds")
 
+
 species_groups <- readRDS("data/species_groups.rds")# %>%
   # select(-populationID) %>%
   # distinct()
@@ -99,9 +100,18 @@ high_level_groups <- groupIDs %>%
   filter(grepl(" All",groupName)) %>%
   mutate(facet = c(1,2,2,3,4,1,4,1,4,3))
 
+sub_groups <- species_groups %>%
+  select(subgroupID,groupName) %>%
+  distinct()
+
 groupIDs <- groupIDs %>%
   mutate(summary_plot = ifelse(groupName %in% high_level_groups$groupName,
-                               "Yes","No"))
+                               "Yes","No")) %>%
+  left_join(sub_groups,
+            by = "groupName")
+
+
+
 
 all_composites_out <- all_composites %>%
   inner_join(.,groupIDs) %>%
@@ -109,8 +119,9 @@ all_composites_out <- all_composites %>%
          log_scale_indicator_sd = sd,
          log_scale_indicator_lci = q2_5,
          log_scale_indicator_uci = q97_5) %>%
-  relocate(groupName,groupID,year,
-           log_scale_indicator,log_scale_indicator_sd,log_scale_indicator_lci,log_scale_indicator_uci,
+  relocate(groupName,groupID,subgroupID,year,
+           log_scale_indicator,log_scale_indicator_sd,
+           log_scale_indicator_lci,log_scale_indicator_uci,
            percent_diff, percent_diff_lci, percent_diff_uci) %>%
   select(-c(ess_bulk,rhat,yearn2,model,variable)) %>%
   mutate(across(log_scale_indicator:percent_diff_uci,
@@ -118,6 +129,7 @@ all_composites_out <- all_composites %>%
   relocate(plotting_name,
            groupName,
            groupID,
+           subgroupID,
            summary_plot,
            year,
            percent_diff,
@@ -126,10 +138,17 @@ all_composites_out <- all_composites %>%
            p_decrease,
            p_increase)
 
+write_csv(all_composites_out,"composite_indicators_all.csv")
 
 
 # Share composite_indicators_all.csv with Catherine for upload ------------
-write_csv(all_composites_out,"composite_indicators_all.csv")
+all_composites_socb_site <- all_composites_out %>%
+  select(groupName,groupID,subgroupID,year,
+         log_scale_indicator,log_scale_indicator_sd,log_scale_indicator_lci,log_scale_indicator_uci,
+         percent_diff,percent_diff_lci,percent_diff_uci)
+write_csv(all_composites_socb_site,"composite_indicators_all_socb_upload.csv")
+
+
 
 start_years <- all_composites_out %>%
   group_by(plotting_name,
