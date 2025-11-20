@@ -287,6 +287,63 @@ dev.off()
 
 
 
+# Standard overview plot --------------------------------------------------
+brks_pch <- c(-98,-95,-90,-65,-50,-33,-20,0,25,50,100,300,500,1000,2000,5000)
+brks_log <- log((brks_pch/100)+1) # above values transformed to original log-scale – used to set the breaks in the log-scale graph below.
+brks_labs <- paste0(brks_pch,"%") # text labels to add to the y-axis
+
+
+
+
+overview <- ggplot(data = main_composites,
+                   aes(x = year,y = mean, group = groupName))+
+  geom_hline(yintercept = 0)+
+  # geom_ribbon(aes(ymin = q2_5,ymax = q97_5,
+  #                 fill = groupName),
+  #             alpha = 0.1)+
+  # geom_ribbon(aes(ymin = q10,ymax = q90,
+  #                 fill = groupName),
+  #             alpha = 0.15)+
+  # geom_ribbon(aes(ymin = q25,ymax = q75,
+  #                 fill = groupName),
+  #             alpha = 0.15)+
+  geom_line(aes(colour = groupName))+
+  geom_text_repel(data = names_plot,
+                  aes(label = lbl,
+                      colour = groupName),nudge_x = 10,
+                  nudge_y = 0.1,
+                  size = 3,
+                  segment.alpha = 0.6)+
+  scale_x_continuous(breaks = seq(1970,2020, 10))+
+  coord_cartesian(xlim = c(1970,2040),
+                  ylim = c(log(0.25),log(2)))+
+  scale_color_viridis_d(aesthetics = c("fill","colour"),
+                        end = 0.9)+
+  theme_bw()+
+  ylab("")+
+  xlab("")+
+  scale_y_continuous(breaks = brks_log,
+                     labels = brks_labs)+
+  theme(legend.position = "none",
+        strip.text = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank()#,
+        #panel.grid.major.x = element_blank()
+        )
+
+overview
+
+
+pdf("figures/Standard_highlevel_composite_indicators.pdf",
+    height = 6,
+    width = 7)
+print(overview)
+dev.off()
+
+
+
+
+
 # Supplemental Spaghetti Plots --------------------------------------------
 
 
