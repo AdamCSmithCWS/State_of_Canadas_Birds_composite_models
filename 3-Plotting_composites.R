@@ -292,7 +292,9 @@ brks_pch <- c(-98,-95,-90,-65,-50,-33,-20,0,25,50,100,300,500,1000,2000,5000)
 brks_log <- log((brks_pch/100)+1) # above values transformed to original log-scale – used to set the breaks in the log-scale graph below.
 brks_labs <- paste0(brks_pch,"%") # text labels to add to the y-axis
 
-
+socb_pal <- read_csv("data/SOCB_palette.csv")
+SOCB_palette <- socb_pal$hex
+names(SOCB_palette) <- socb_pal$groupName
 
 
 overview <- ggplot(data = main_composites,
@@ -308,17 +310,18 @@ overview <- ggplot(data = main_composites,
   #                 fill = groupName),
   #             alpha = 0.15)+
   geom_line(aes(colour = groupName))+
-  geom_text_repel(data = names_plot,
-                  aes(label = lbl,
-                      colour = groupName),nudge_x = 10,
-                  nudge_y = 0.1,
-                  size = 3,
-                  segment.alpha = 0.6)+
+  # geom_text_repel(data = names_plot,
+  #                 aes(label = lbl,
+  #                     colour = groupName),nudge_x = 10,
+  #                 nudge_y = 0.1,
+  #                 size = 3,
+  #                 segment.alpha = 0.6)+
   scale_x_continuous(breaks = seq(1970,2020, 10))+
-  coord_cartesian(xlim = c(1970,2040),
+  coord_cartesian(xlim = c(1970,2025),
                   ylim = c(log(0.25),log(2)))+
-  scale_color_viridis_d(aesthetics = c("fill","colour"),
-                        end = 0.9)+
+  # scale_color_viridis_d(aesthetics = c("fill","colour"),
+  #                       end = 0.9)+
+  scale_colour_manual(values = SOCB_palette)+
   theme_bw()+
   ylab("")+
   xlab("")+
