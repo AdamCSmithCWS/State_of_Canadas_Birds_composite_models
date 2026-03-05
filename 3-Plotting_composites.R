@@ -350,7 +350,7 @@ dev.off()
 # Supplemental Spaghetti Plots --------------------------------------------
 
 
-div_pal <- scico(palette = "romaO",n = 11)[c(2,5,9)]
+div_pal <- scico(palette = "romaO",n = 11)[c(2,4,9)]
 names(div_pal) <- c("decrease","stable","increase")
 
 pdf(paste0("figures/supplemental_figures.pdf"),
@@ -387,7 +387,8 @@ for(i in 1:nrow(groupIDs)){
 
   inds_all_plot <- all_smoothed_indices %>%
     filter(speciesID %in% species_sel$speciesID) %>%
-    mutate(percent_dif = round((exp(scaled_status)-1)*100))
+    mutate(percent_dif = round((exp(scaled_status)-1)*100))%>%
+    filter(!english_name == "Boreal Owl")
 
 
   sp_y <- inds_all_plot %>%
@@ -451,16 +452,20 @@ for(i in 1:nrow(groupIDs)){
   ylimu_spag <- max(inds_all_plot$scaled_status)
   yliml_spag <- min(inds_all_plot$scaled_status)
 
-if(nrow(inds_label) > 75){
-  sz = 1.75
+if(nrow(inds_label) > 54){
+  if(nrow(inds_label) > 120){
+    sz = 1.1
+  }else{
+  sz = 1.25
+  }
 }else{
-  sz = 2.5
+  sz = 2
 }
 
 
   tst2 <- ggplot(data = annual_status_difference,
                  aes(x = year,y = mean))+
-    geom_hline(yintercept = 0)+
+    geom_hline(yintercept = 0, colour = grey(0.7))+
     geom_line(data = inds_all_plot,
               aes(x = year,y = scaled_status,
                   group = speciesID,
@@ -471,23 +476,39 @@ if(nrow(inds_label) > 75){
     geom_ribbon(aes(ymin = q2_5,ymax = q97_5),
                 alpha = 0.2)+
     geom_line()+
-    ggrepel::geom_text_repel(data = inds_label,
+    # ggrepel::geom_text_repel(data = inds_label,
+    #                          aes(x = year,y = scaled_status,
+    #                              label = lbl,
+    #                              colour = qual_dif),
+    #                          size = sz,
+    #                          max.overlaps = 30,
+    #                          min.segment.length = 0,
+    #                          nudge_x = 10,
+    #                          alpha = 1,
+    #                          box.padding = 0.1,
+    #                          segment.alpha = 0.3,
+    #                          segment.size = 0.2,
+    #                          hjust = "left")+
+    ggrepel::geom_label_repel(data = inds_label,
                              aes(x = year,y = scaled_status,
                                  label = lbl,
                                  colour = qual_dif),
                              size = sz,
                              max.overlaps = 30,
                              min.segment.length = 0,
-                             nudge_x = 10,
-                             alpha = 1,
-                             box.padding = 0.1,
+                             nudge_x = 25,
+                             alpha = 0.7,
+                             label.padding = 0.1,
+                             label.size = NA,
+                             box.padding = 0.05,
                              segment.alpha = 0.3,
                              segment.size = 0.2,
-                             hjust = "left")+
+                             hjust = "left",
+                             xlim = c(2020,2055))+
     scale_y_continuous(breaks = brks_log,
                        labels = brks_labs,
                        limits = c(yliml_spag,ylimu_spag))+
-    scale_x_continuous(limits = c(1970,2045),
+    scale_x_continuous(limits = c(1970,2055),
                        breaks = seq(1970,2020,by = 10),
                        expand = c(0,0))+
     scale_colour_manual(values = div_pal)+

@@ -103,8 +103,8 @@ if(!drop_low_confidence){
 }
 
 
-re_fit_all <- TRUE
-groups_to_refit <- groups_published #groups_published
+re_fit_all <- FALSE
+groups_to_refit <- NULL #groups_published #groups_published
 
 for(grp in groups_published){
 
