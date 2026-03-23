@@ -436,10 +436,10 @@ for(i in 1:nrow(groupIDs)){
     unname()
 
   stat_sum <- paste("This indicator includes",n_inc,"species with Canadian populations that have increased (moderate or large increase, in blue),",
-                    n_stab,"species that have shown little change (in light green), and",
+                    n_stab,"species that have shown little change (in yellow), and",
                     n_dec,"species that have decreased (moderate or large decrease, in red) over the long-term. Note: the colours representing each species population status categories are based on the species' status assessment in the published species account of The State of Canada's Birds and may differ from the change value at the end-point of the species' lines in the plot, which includes the precision-weighted smoothing in the first-stage of the analysis.")
 
-  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species percent population change for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines reflecting the approximate contribution each species makes to the indicator. These coloured lines are the cumulative annual precent change values of each species included in the indicator, and the transparency of each line shows the mean uncertainty of the estimates of the species' annual rates of population change (i.e., more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line)",
+  fig_cap <- paste(paste0("Figure S",i,"."),"Indicator of mean species percent population change for",grp_plot,"(black line with grey ribbon showing 95% CI of the mean), with coloured lines reflecting the approximate contribution each species makes to the indicator. These coloured lines are the cumulative annual precent change values of each species included in the indicator, and the transparency of each line shows the mean uncertainty of the estimates of the species' annual rates of population change (i.e., more transparent lines represent species with greater uncertainty in their annual status, and therefore lower weight in the estimation of the mean indicator line).",
                    stat_sum)
 
   fig_cap <- str_wrap(fig_cap, width = 130)
