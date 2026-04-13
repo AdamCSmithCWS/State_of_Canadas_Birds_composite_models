@@ -67,6 +67,11 @@ group_drop <- c("Edge/Early",
                 "Sensitive to Linear Disturbance",
                 "Shrub Steppe Birds")
 
+is_y <- function(x){
+  out <- x == "Y"
+  out <- ifelse(any(out),
+                TRUE,FALSE)
+}
 table_out <- sp_g %>%
   relocate(scientific_name,
            english_name,
@@ -74,7 +79,10 @@ table_out <- sp_g %>%
            starts_with(group_order),
            speciesID) %>%
   select(-contains(group_drop)) %>%
-  rename(NatureCounts_speciesID = speciesID)
+  rename(NatureCounts_speciesID = speciesID)%>%
+  rowwise() %>%
+  mutate(included_in_composite_group = ifelse(is_y(c_across(4:31)),
+                                              TRUE,FALSE))
 
 
 survey_join <- data.frame(resultsCode = c("LINCOLN",
@@ -121,12 +129,20 @@ rank_tbl <- readRDS("data/SocbTrendRank.rds")%>%
 #   distinct()
 
 
+  status_tbl <- readRDS("data/SocbStatus.rds")
+  status_goal_join <- status_tbl %>%
+    filter(popType == 1) %>%
+    select(speciesID,popStatusEn,objective,objectiveEn,
+           goalEn,goalTrend) %>%
+    distinct()
 
 
 
 
 table_out_w_survey<- table_out %>%
   left_join(rank_tbl,
+            by = c("NatureCounts_speciesID" = "speciesID"))%>%
+  left_join(status_goal_join,
             by = c("NatureCounts_speciesID" = "speciesID"))%>%
   mutate(resultsCode = ifelse(is.na(resultsCode),
                               "No suitable data",
@@ -135,7 +151,12 @@ table_out_w_survey<- table_out %>%
             by = "resultsCode") %>%
   select(-c(resultsCode,taxon_group)) %>%
   relocate(scientific_name,english_name,french_name,
-           Main_Survey) %>%
+           included_in_composite_group,
+           Main_Survey,
+           popStatusEn,
+           objectiveEn,
+           goalEn,
+           goalTrend) %>%
   rename(Scientific_Name = scientific_name,
          English_Name = english_name,
          French_Name = french_name)
@@ -144,7 +165,7 @@ table_out_w_survey<- table_out %>%
 
 miss_sp <- table_out_w_survey %>% filter(is.na(Main_Survey))
 
-write_excel_csv(table_out_w_survey,"Wide_format_SOCB_species_table.csv")
+write_excel_csv(table_out_w_survey,"Wide_format_SOCB_species_table2.csv")
 
 
 
