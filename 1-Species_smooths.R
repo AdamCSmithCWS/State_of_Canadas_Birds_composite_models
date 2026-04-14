@@ -93,10 +93,56 @@ if(re_download){
 
 
   species_names <- naturecounts::search_species() %>%
-    rename_with(.,.fn = specid_rename) %>%
-    filter(speciesID %in% species_groups$speciesID)
+    rename_with(.,.fn = specid_rename)
 
   saveRDS(species_names,"data/species_names.rds")
+
+
+  status_tbl_ids <- unique(status_tbl$speciesID)
+
+  sp_group_ids <- unique(species_groups$speciesID)
+
+  if(any(!status_tbl_ids %in% sp_group_ids)){
+    sp_miss <- status_tbl_ids[-which(status_tbl_ids %in% sp_group_ids)]
+    sp_miss_names <- species_names[which(species_names$speciesID %in% sp_miss),"english_name"]
+    warning(paste(length(sp_miss),"species with status are missing from species_groups",
+                  paste(sp_miss_names$english_name,collapse = "; ")))
+
+    warning(paste("now adding those missing species to the species groups table
+            but without including them in any groups.
+            Critical to confirm that these species
+                  ",paste(sp_miss_names$english_name,collapse = "; "),
+                  "
+                  do not need to be included in any composite groups"))
+
+    sp_groups <- species_groups %>%
+      select(groupName,groupID,
+             popType,groupNameFr,subgroupID) %>%
+      distinct() %>%
+      expand_grid( speciesID = sp_miss) %>%
+      mutate(include = "N")
+
+    species_groups <- species_groups %>%
+      bind_rows(sp_groups)
+
+  }
+
+  if(any(!sp_group_ids %in% status_tbl_ids)){
+    sp_miss2 <- sp_group_ids[-which(sp_group_ids %in% status_tbl_ids)]
+    sp_miss_names2 <- species_names[which(species_names$speciesID %in% sp_miss2),"english_name"]
+    warning(paste(length(sp_miss2),"species in species_groups are missing from status table",
+                  paste(sp_miss_names2$english_name,collapse = "; ")))
+
+    warning(paste("now removing species with no status from species_groups table"))
+
+    species_groups <- species_groups %>%
+      filter(!speciesID %in% sp_miss2)
+
+
+  }
+
+
+
 
 }
 
