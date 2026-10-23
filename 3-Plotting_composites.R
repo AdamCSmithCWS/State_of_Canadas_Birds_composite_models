@@ -678,7 +678,16 @@ print(tst3)
 dev.off()
 
 
-saveRDS(tst3,paste0("figures/saved_rds/",grp_labl,"spaghetti_example_for)publication.rds"))
+png("Figures/Spaghetti_example.png",
+    width = 7,
+    height = 5,
+    units = "in",
+    res = 600)
+print(tst3)
+dev.off()
+
+
+saveRDS(tst3,paste0("figures/saved_rds/",grp_labl,"spaghetti_example_for_publication.rds"))
 
 
 
